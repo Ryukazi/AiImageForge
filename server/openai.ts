@@ -1,19 +1,13 @@
-import OpenAI from "openai";
-
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
-});
-
 export interface ImageGenerationOptions {
   prompt: string;
   style: string;
   size?: "512x512" | "768x512" | "512x768" | "1024x1024";
 }
 
+// Web scraper for aggregating images from various AI image generation platforms
 export async function generateImage(options: ImageGenerationOptions): Promise<{ url: string }> {
   try {
-    // Enhance prompt based on style
+    // Enhanced prompt based on style
     let enhancedPrompt = options.prompt;
     
     switch (options.style) {
@@ -39,21 +33,25 @@ export async function generateImage(options: ImageGenerationOptions): Promise<{ 
         enhancedPrompt = options.prompt;
     }
 
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: enhancedPrompt,
-      n: 1,
-      size: options.size || "1024x1024",
-      quality: "standard",
-    });
-
-    if (!response.data[0]?.url) {
-      throw new Error("No image URL returned from OpenAI");
-    }
-
-    return { url: response.data[0].url };
+    // Scrape and aggregate images from various AI platforms
+    const aggregatedImage = await scrapeFromMultiplePlatforms(options.style, enhancedPrompt, options.size);
+    
+    return { url: aggregatedImage };
   } catch (error) {
     console.error("Error generating image:", error);
     throw new Error(`Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Multi-platform scraper that aggregates content from various AI image generators
+async function scrapeFromMultiplePlatforms(style: string, prompt: string, size?: string): Promise<string> {
+  const { ImageAggregator } = await import("./scrapers/index");
+  const aggregator = new ImageAggregator();
+  
+  try {
+    return await aggregator.aggregateImages(style, prompt);
+  } catch (error) {
+    console.error("Scraping failed:", error);
+    throw new Error("Unable to aggregate images from available platforms");
   }
 }

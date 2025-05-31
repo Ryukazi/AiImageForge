@@ -39,6 +39,8 @@ export const insertGeneratedImageSchema = createInsertSchema(generatedImages).pi
   style: true,
   imageUrl: true,
   imageSize: true,
+}).extend({
+  imageSize: z.string().default("1024x1024"),
 });
 
 export const insertTemplateSchema = createInsertSchema(templates).pick({
